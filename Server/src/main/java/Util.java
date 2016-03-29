@@ -43,7 +43,7 @@ public class Util {
                 outputStream.write(new byte[]{(byte) (l >>> 56), (byte) (l >>> 48), (byte) (l >>> 40),
                         (byte) (l >>> 32), (byte) (l >>> 24), (byte) (l >>> 16), (byte) (l >>> 8), (byte) l});
             } else {
-                throw new IOException("Error. Can not marshal types other than string, integer and long");
+                throw new IOException("Error. Type of value must be Sring, Byte, Short, Integer or Long.");
             }
 
             outputStream.write(',');
@@ -51,18 +51,18 @@ public class Util {
         return outputStream.toByteArray();
     }
 
-    public static Map<String, Object> unmarshall(byte[] bytes) throws Exception {
+    public static Map<String, Object> unmarshall(byte[] bytes) throws IOException {
         Map<String, Object> map = new HashMap<>();
         int index = 0;
         while (index < bytes.length) {
             if (bytes[index] != 'n')
-                throw new IOException();
+                throw new IOException("Data format error.");
             index++;
             int end = index;
             while (bytes[++end] != '\0') ;
             String key = new String(bytes, index, end - index, StandardCharsets.UTF_8);
             if (bytes[index = end + 1] != ':')
-                throw new IOException();
+                throw new IOException("Data format error.");
             index++;
 
             Object value = null;
@@ -93,11 +93,11 @@ public class Util {
                     index += 8;
                     break;
                 default:
-                    throw new IOException("Type not recognized");
+                    throw new IOException("Type not recognized.");
             }
 
             if (bytes[++index] != ',')
-                throw new IOException();
+                throw new IOException("Data format error.");
             index++;
 
             map.put(key, value);
@@ -138,7 +138,7 @@ public class Util {
         System.out.println("Back to map:");
         try {
             System.out.println(unmarshall(bMap));
-        } catch (Exception e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
         System.out.println("\n");

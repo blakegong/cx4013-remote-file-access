@@ -5,9 +5,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class Util {
-    public static void main(String[] args) {
-        test();
-    }
 
     public static byte[] marshall(Map<String, Object> map) throws IOException {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -68,6 +65,7 @@ public class Util {
             Object value = null;
             switch (bytes[index]) {
                 case 'r':
+                    index++;
                     while (bytes[++end] != '\0') ;
                     value = new String(bytes, index, end - index, StandardCharsets.UTF_8);
                     index = end;
@@ -77,7 +75,7 @@ public class Util {
                     index++;
                     break;
                 case 's':
-                    value = bytes[index + 1] << 8 | bytes[index + 2];
+                    value = (short) (bytes[index + 1] << 8 | bytes[index + 2]);
                     index += 2;
                     break;
                 case 'i':
@@ -106,41 +104,4 @@ public class Util {
         return map;
     }
 
-    private static void test() {
-        Map<String, Object> map = new HashMap<>();
-        map.put("string", "helijoisiio\n\t");
-        map.put("byte", (byte) -93);
-        map.put("short", (short) -3287);
-        map.put("int", -1695609641);
-        map.put("long", -169560964116956096L);
-
-        System.out.println("Original map:");
-        System.out.println(map + "\n");
-
-        System.out.println("Byte array:");
-        byte[] bMap = null;
-        try {
-            bMap = marshall(map);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        for (byte b : bMap) {
-            System.out.print(b + "\t");
-        }
-        System.out.println("\n");
-
-        System.out.println("Byte array in char:");
-        for (byte b : bMap) {
-            System.out.print((char) b + "\t");
-        }
-        System.out.println("\n");
-
-        System.out.println("Back to map:");
-        try {
-            System.out.println(unmarshall(bMap));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        System.out.println("\n");
-    }
 }

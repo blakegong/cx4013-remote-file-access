@@ -16,12 +16,11 @@ class ProtocolLayer():
         self.CLEAR_OP = 3
         self.DELETE_OP = 4
         self.BYTE_ORDER = 'big'
-        # self.SERVER_IP = input("Enter Server's IP Address: ")
-        # self.SERVER_PORT = input("Enter Server's Port Number: ")
-        self.SERVER_IP = '172.22.143.228'
-        self.SERVER_PORT = 9800
+        self.SERVER_IP = input("Enter Server's IP Address: ")
+        self.SERVER_PORT = int(input("Enter Server's Port Number: "))
         self.SOCKET = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.SOCKET.settimeout(3)
+        self.DEFAULT_TIMEOUT = 3
+        self.SOCKET.settimeout(self.DEFAULT_TIMEOUT)
         self.FRAMESIZE = 1024
 
     def _marshall(self, request):
@@ -100,14 +99,12 @@ class ProtocolLayer():
         """
         request = {
             'op': self.READ_OP,
-            'f': pathname,
+            'f': str.encode(pathname),
             'off': offset,
             'len': length,
             'time': str.encode(str(datetime.now()))
         }
-        print('Request READ - {} - {} - {}'.format(bytes.decode(pathname), offset, length))
-        msg = self._send_udp(request)
-        return msg
+        return self._send_udp(request)
 
     def INSERT(self, pathname, offset, content):
         """
@@ -115,20 +112,37 @@ class ProtocolLayer():
         """
         request = {
             'op': self.INSERT_OP,
-            'f': pathname,
+            'f': str.encode(pathname),
             'off': offset,
             'data': content,
             'time': str.encode(str(datetime.now()))
         }
-        print('Request INSERT - {} - {} - {}'.format(bytes.decode(pathname), offset, bytes.decode(content)))
-        msg = self._send_udp(request)
-        return msg
+        return self._send_udp(request)
 
-    def MONITOR(self, pathname):
+    def MONITOR(self, pathname, dur):
         """
         Implementation of MONITOR protocol.
         """
-        pass
+        request = {
+            'op': self.MONITOR_OP,
+            'f': str.encode(pathname),
+            'dur': dur
+        }
+        msg = self._send_udp(request)
+        if 'Exception' in msg:
+            print('\tError Message:', bytes.decode(msg['Exception']))
+        elif 'ACK' in msg:
+            print('\tEnter MONITOR mode...')
+            self.SOCKET.settimeout(dur)
+            while True:
+                try:
+                    update = self._unmarshall(self.SOCKET.recv(self.FRAMESIZE))
+                    print('\t\t', update)
+                except socket.timeout:
+                    break
+            print('\tLeave MONITOR mode.')
+            self.SOCKET.settimeout(self.DEFAULT_TIMEOUT)
+
 
     def CLEAR(self, pathname):
         """
@@ -136,12 +150,10 @@ class ProtocolLayer():
         """
         request = {
             'op': self.CLEAR_OP,
-            'f': pathname,
+            'f': str.encode(pathname),
             'time': str.encode(str(datetime.now()))
         }
-        print('Request CLEAR - {}'.format(bytes.decode(pathname)))
-        msg = self._send_udp(request)
-        return msg
+        return self._send_udp(request)
 
     def DELETE(self, pathname, offset, length):
         """
@@ -149,18 +161,9 @@ class ProtocolLayer():
         """
         request = {
             'op': self.DELETE_OP,
-            'f': pathname,
+            'f': str.encode(pathname),
             'off': offset,
             'len': length,
             'time': str.encode(str(datetime.now()))
         }
-        print('Request DELETE - {} - {} - {}'.format(bytes.decode(pathname), offset, length))
-        msg = self._send_udp(request)
-        return msg
-
-if __name__ == '__main__':
-    pl = ProtocolLayer()
-    print(pl.READ(b'readme.txt', 2, 5))
-    print(pl.INSERT(b'readme.txt', 0, b'@_@'))
-    # print(pl.CLEAR(b'readme.txt'))
-    # print(pl.DELETE(b'readme.txt', 43, 8))
+        return self._send_udp(request)

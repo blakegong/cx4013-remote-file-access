@@ -4,6 +4,8 @@ Implementation of client-side caching in memory.
 
 from datetime import datetime
 
+from ClientProtocol import ProtocolLayer
+
 class CacheEntry():
     """
     An entry of a cached file.
@@ -37,6 +39,7 @@ class CacheLayer():
     """
     def __init__(self):
         self.entries = dict()
+        self.PROTOCOL = ProtocolLayer()
 
     def READ(self, pathname, offset, length):
         """
@@ -66,6 +69,26 @@ class CacheLayer():
             new_entry = CacheEntry(pathname)
             new_entry.set(offset, content)
             self.entries[pathname] = new_entry
+
+    def CLEAR(self, pathname):
+        """
+        Caching for CLEAR protocol.
+        """
+        self.PROTOCOL.CLEAR(pathname)
+        try:
+            del self.entries[pathname]
+        except:
+            pass
+
+    def DELETE(self, pathname, offset, content):
+        """
+        Caching for DELETE protocol.
+        """
+        self.PROTOCOL.DELETE(pathname, offset, content)
+        try:
+            del self.entries[pathname]
+        except:
+            pass
 
 
 if __name__ == '__main__':

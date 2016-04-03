@@ -31,7 +31,7 @@ def read(serverSock, file, offset, length, semantic):
 	return
 
 def monitor(serverSock, file, interval):
-	operation = {'op':2, 'f': 'readme.txt', 'dur':30, 'sem':0}
+	operation = {'op':2, 'f': 'readme.txt', 'dur':interval, 'sem':0}
 	operation = util.marshall(operation);
 	startTime = datetime.datetime.now();
 	while True:

@@ -43,6 +43,7 @@ def monitor(serverSock, file, interval):
 		except socket.timeout:
 			print 'Resending command'
 	response = util.unmarshall(data)
+	print (response)
 	if 'Exception' in response:
 		print 'Exception ', response['Exception']
 		return
@@ -64,4 +65,3 @@ def monitor(serverSock, file, interval):
 #send operations
 #operation = {'op':1, 'off':41, 'f': 'readme.txt', 'data': '[CE4013]', 'sem':0}
 #operation = {'op':3, 'f':'readme.txt'}
-	

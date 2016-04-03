@@ -6,8 +6,7 @@ remoteFile.server_PORT = 9800
 client_PORT = 9900
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.bind(('', client_PORT))
-sock.setblocking(0)
-sock.settimeout(100)
+sock.settimeout(2)
 #get input
 while True:
 	print '-----------------------'

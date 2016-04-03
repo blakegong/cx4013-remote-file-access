@@ -78,8 +78,13 @@ class CachedLayer():
             except:
                 pass
 
-    def MONITOR(self, pathname):
-        pass
+    def MONITOR(self, pathname, dur):
+        self.PROTOCOL.MONITOR(pathname, dur)
+        try:
+            del self.entries[pathname]
+            print('\t\tCache entry becomes invalid')
+        except:
+            pass
 
     def CLEAR(self, pathname):
         """
@@ -110,10 +115,3 @@ class CachedLayer():
                 print('\t\tCache entry becomes invalid')
             except:
                 pass
-
-if __name__ == '__main__':
-    cl = CachedLayer(20)
-    cl.READ('readme.txt', 0, 5)
-    cl.READ('readme.txt', 0, 3)
-    cl.INSERT('readme.txt', 0, b'xxx')
-    cl.READ('readme.txt', 0, 2)

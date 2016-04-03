@@ -19,7 +19,8 @@ class ProtocolLayer():
         self.SERVER_IP = input("Enter Server's IP Address: ")
         self.SERVER_PORT = int(input("Enter Server's Port Number: "))
         self.SOCKET = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.SOCKET.settimeout(3)
+        self.DEFAULT_TIMEOUT = 3
+        self.SOCKET.settimeout(self.DEFAULT_TIMEOUT)
         self.FRAMESIZE = 1024
 
     def _marshall(self, request):
@@ -103,8 +104,7 @@ class ProtocolLayer():
             'len': length,
             'time': str.encode(str(datetime.now()))
         }
-        msg = self._send_udp(request)
-        return msg
+        return self._send_udp(request)
 
     def INSERT(self, pathname, offset, content):
         """
@@ -117,14 +117,32 @@ class ProtocolLayer():
             'data': content,
             'time': str.encode(str(datetime.now()))
         }
-        msg = self._send_udp(request)
-        return msg
+        return self._send_udp(request)
 
-    def MONITOR(self, pathname):
+    def MONITOR(self, pathname, dur):
         """
         Implementation of MONITOR protocol.
         """
-        pass
+        request = {
+            'op': self.MONITOR_OP,
+            'f': str.encode(pathname),
+            'dur': dur
+        }
+        msg = self._send_udp(request)
+        if 'Exception' in msg:
+            print('\tError Message:', bytes.decode(msg['Exception']))
+        elif 'ACK' in msg:
+            print('\tEnter MONITOR mode...')
+            self.SOCKET.settimeout(dur)
+            while True:
+                try:
+                    update = self._unmarshall(self.SOCKET.recv(self.FRAMESIZE))
+                    print('\t\t', update)
+                except socket.timeout:
+                    break
+            print('\tLeave MONITOR mode.')
+            self.SOCKET.settimeout(self.DEFAULT_TIMEOUT)
+
 
     def CLEAR(self, pathname):
         """
@@ -135,8 +153,7 @@ class ProtocolLayer():
             'f': str.encode(pathname),
             'time': str.encode(str(datetime.now()))
         }
-        msg = self._send_udp(request)
-        return msg
+        return self._send_udp(request)
 
     def DELETE(self, pathname, offset, length):
         """
@@ -149,5 +166,4 @@ class ProtocolLayer():
             'len': length,
             'time': str.encode(str(datetime.now()))
         }
-        msg = self._send_udp(request)
-        return msg
+        return self._send_udp(request)

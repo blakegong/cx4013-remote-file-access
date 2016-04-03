@@ -4,7 +4,7 @@ Read
 Request:
 { op: 0,  f: ‘file name’, off: ’offset’, len: ‘length’, t:’time’}
 
-Response: 
+Response:
 1. {Exception : 'invalid offset'} #no data exist at that offset
 2. {Exception : 'cannot find file'}
 3. {Exception : 'cannot read file'}
@@ -17,7 +17,7 @@ Insert
 Request:
 {'op':1, 'off':41, 'f': 'readme.txt', 'data': '[CE4013]','t':'time'}
 
-Response: 
+Response:
 1. {Exception : 'invalid offset'} #no data exist at that offset or it is not end of this file
 2. {Exception : 'cannot find file'}
 3. {Exception : 'cannot read file'}
@@ -29,7 +29,7 @@ Register a monitor
 Request:
 {'op':2, 'f': 'readme.txt', 'dur':30,'t':'time'}
 
-Response: 
+Response:
 1. {Exception : 'Client already monitor the file'}
 2. {ACK: 'Success'}
 ---------------------------------------------------
@@ -39,7 +39,7 @@ Clear a file
 Request:
 {'op':3, 'f':'readme.txt','t':'time'}
 
-Response: 
+Response:
 1. {Exception : 'cannot find file'}
 2. {ACK: 'Success'}
 ---------------------------------------------------
@@ -49,11 +49,8 @@ Delete
 Request:
 { op: 0,  f: ‘file name’, off: ’offset’, len: ‘length’, t:’time’}
 
-Response: 
+Response:
 1. {Exception : 'invalid offset'}
 2. {Exception : 'cannot find file'}
 3. {Exception : 'cannot read file'}
 4. {ACK: 'Success'}
-
-			
-			

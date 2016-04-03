@@ -53,5 +53,5 @@ class ClientShell(cmd.Cmd):
         return True
 
 if __name__ == '__main__':
-    cl = CachedLayer()
+    cl = CachedLayer(ttl=int(input('Enter the TTL for cache in seconds: ')))
     ClientShell().cmdloop()

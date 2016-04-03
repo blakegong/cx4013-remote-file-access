@@ -53,5 +53,5 @@ class ClientShell(cmd.Cmd):
         return True
 
 if __name__ == '__main__':
-    cl = CachedLayer(ttl=20)
+    cl = CachedLayer()
     ClientShell().cmdloop()

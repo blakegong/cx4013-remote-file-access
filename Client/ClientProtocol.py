@@ -15,6 +15,7 @@ class ProtocolLayer():
         self.MONITOR_OP = 2
         self.CLEAR_OP = 3
         self.DELETE_OP = 4
+        self.VERSION_OP = 5
         self.BYTE_ORDER = 'big'
         self.SERVER_IP = input("Enter Server's IP Address: ")
         self.SERVER_PORT = int(input("Enter Server's Port Number: "))
@@ -79,7 +80,7 @@ class ProtocolLayer():
             msg[key] = value
         return msg
 
-    def _send_udp(self, request):
+    def _repeat_send(self, request, slient=False):
         request = self._marshall(request)
         times = 1
         while True:
@@ -89,7 +90,8 @@ class ProtocolLayer():
                 if len(msg) != 0:
                     break
             except socket.timeout:
-                print('TIMEOUT - No. of resend: {}'.format(times))
+                if not slient:
+                    print('TIMEOUT - No. of resend: {}'.format(times))
                 times += 1
         return self._unmarshall(msg)
 
@@ -104,7 +106,7 @@ class ProtocolLayer():
             'len': length,
             'time': str.encode(str(datetime.now()))
         }
-        return self._send_udp(request)
+        return self._repeat_send(request)
 
     def INSERT(self, pathname, offset, content):
         """
@@ -117,7 +119,7 @@ class ProtocolLayer():
             'data': content,
             'time': str.encode(str(datetime.now()))
         }
-        return self._send_udp(request)
+        return self._repeat_send(request)
 
     def MONITOR(self, pathname, dur):
         """
@@ -128,7 +130,7 @@ class ProtocolLayer():
             'f': str.encode(pathname),
             'dur': dur
         }
-        msg = self._send_udp(request)
+        msg = self._repeat_send(request)
         if 'Exception' in msg:
             print('\tError Message:', bytes.decode(msg['Exception']))
         elif 'ACK' in msg:
@@ -153,7 +155,7 @@ class ProtocolLayer():
             'f': str.encode(pathname),
             'time': str.encode(str(datetime.now()))
         }
-        return self._send_udp(request)
+        return self._repeat_send(request)
 
     def DELETE(self, pathname, offset, length):
         """
@@ -166,4 +168,15 @@ class ProtocolLayer():
             'len': length,
             'time': str.encode(str(datetime.now()))
         }
-        return self._send_udp(request)
+        return self._repeat_send(request)
+
+    def VERSION(self, pathname):
+        """
+        Protocol for checking file version.
+        """
+        request = {
+            'op': self.VERSION_OP,
+            'f': str.encode(pathname),
+            'time': str.encode(str(datetime.now()))
+        }
+        return self._repeat_send(request, slient=True)

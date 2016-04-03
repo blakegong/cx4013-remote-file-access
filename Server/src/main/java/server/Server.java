@@ -1,4 +1,4 @@
-package dawen;
+package server;
 
 import java.io.IOException;
 import java.net.*;
@@ -6,30 +6,28 @@ import java.util.*;
 
 public class Server {
 
-    private static enum OP {READ, INSERT, MONITOR, CLEAR, DELETE}
-
     private static final int READ = 0;
     private static final int INSERT = 1;
     private static final int MONITOR = 2;
     private static final int CLEAR = 3;
     private static final int DELETE = 4;
-    private static boolean AT_LEAST_ONCE = true;
-    private int port;
+    private static final int VERSION = 5;
 
-    private DatagramSocket socket;
+    private static final double PACKET_LOSS_RATE = 0;
 
-    public Server(int port) {
-        this.port = port;
-    }
+    private static boolean AT_LEAST_ONCE = false;
 
-    public void run() {
+    private static int port;
+    private static DatagramSocket socket;
+
+    public static void run() {
         try {
-            this.socket = new DatagramSocket(port);
+            Server.socket = new DatagramSocket(port);
             byte[] receivingBuffer = new byte[1024];
             byte[] replyBuffer = null;
             DatagramPacket req = null;
             Map<String, Object> request = null;
-            Map<String, Object> response = null;
+            Map<String, Object> response = new HashMap<>();
             Map<String, Map<String, Object>> cachedResponse = new HashMap<>();
             DatagramPacket reply = null;
             while (true) {
@@ -38,24 +36,23 @@ public class Server {
                 req = new DatagramPacket(receivingBuffer, receivingBuffer.length);
                 socket.receive(req);
                 System.out.println("[Client]: " + req.getSocketAddress());
+
+                //package loss condition
+                if (Math.random() < PACKET_LOSS_RATE) {
+                    System.out.println("[Packet loss] mocked packet loss at receiving");
+                    continue;
+                }
+
                 //unmarshal request
                 request = Util.unmarshall(receivingBuffer);
                 System.out.println("[Unmarshalling]" + request);
 
-                MonitorHandler.remove((String) request.get("f"));
-//                MonitorHandler.removeExpiredClients((String) request.get("f"));
-
-                //package loss condition
-                /*Random r = new Random();
-                if (r.nextBoolean())
-                    continue;*/
-
                 //cache
                 if (!AT_LEAST_ONCE) {
-                    Map<String, Object> res = cachedResponse.get(req.getSocketAddress().toString() + request.get("t"));
+                    Map<String, Object> res = cachedResponse.get(req.getSocketAddress().toString() + request.get("time"));
                     System.out.println(req.getSocketAddress().toString());
 
-                    if (!res.isEmpty()) {
+                    if (res != null && !res.isEmpty()) {
                         replyBuffer = Util.marshall(res);
                         reply = new DatagramPacket(replyBuffer, replyBuffer.length, req.getAddress(), req.getPort());
                         socket.send(reply);
@@ -67,30 +64,32 @@ public class Server {
                 //handle file request
                 int op = (Integer) request.get("op");
                 if (op == MONITOR) {
-                    if (response == null)
-                        response = new HashMap<>();
                     MonitorHandler.register(req.getSocketAddress(), request, response);
-                }
-//                    response = MonitorHandler.registerClient(req.getSocketAddress(), request);
-                else
-                    response = route(request);
+                } else
+                    route(request, response);
                 //handle monitor
                 if (op == INSERT || op == CLEAR || op == DELETE)
-                    informRegisteredClients(request);
+                    notifyClients(request);
                 //marshal respond
-                System.out.println("[Mashalling]" + response.keySet());
+                for (Map.Entry<String, Object> entry : response.entrySet()) {
+                    System.out.println("[Mashalling]" + entry.getKey() + " " + entry.getValue());
+                }
                 replyBuffer = Util.marshall(response);
                 //sending UDP response
                 reply = new DatagramPacket(replyBuffer, replyBuffer.length, req.getAddress(), req.getPort());
-                System.out.println(req.getAddress());
-                System.out.println(req.getPort());
-                socket.send(reply);
 
                 if (!AT_LEAST_ONCE) {
-                    cachedResponse.put(req.getSocketAddress().toString() + request.get("t"), response);
+                    cachedResponse.put(req.getSocketAddress().toString() + request.get("time"), response);
                 }
 
-                System.out.println("[Sending to client]");
+                //package loss condition
+                if (Math.random() < PACKET_LOSS_RATE) {
+                    System.out.println("[Packet loss] mocked packet loss at replying");
+                    continue;
+                }
+
+                System.out.println("[Sending to client] IP: " + req.getAddress() + " port: " + req.getPort());
+                socket.send(reply);
             }
         } catch (Exception e) {
             System.out.println("[Exception]: " + e.toString());
@@ -99,52 +98,49 @@ public class Server {
         }
     }
 
-    public static Map<String, Object> route(Map<String, Object> request) {
-        Map<String, Object> response = new HashMap<String, Object>();
+    public static void route(Map<String, Object> request, Map<String, Object> response) {
+        response.clear();
+        String fileName = (String) request.get("f");
+        String data = (String) request.get("data");
+        Integer length = (int) request.getOrDefault("len", 0);
+        Integer offset = (int) request.getOrDefault("off", 0);
+
         switch ((Integer) request.get("op")) {
             case READ:
-                response = FileHandler.readFile(request);
+                FileHandler.read(fileName, offset, length, response);
                 break;
             case INSERT:
-                response = FileHandler.insertFile(request);
+                FileHandler.insert(fileName, offset, data, response);
                 break;
             case CLEAR:
-                response = FileHandler.clearFile(request);
+                FileHandler.clear(fileName, response);
                 break;
             case DELETE:
-                response = FileHandler.deleteFile(request);
+                FileHandler.delete(fileName, offset, length, response);
+                break;
+            case VERSION:
+                FileHandler.version(fileName, response);
                 break;
             default:
                 System.out.println("[Exception] invalid operation");
                 response.put("Exception", "invalid operation");
         }
-        return response;
     }
 
-    private void informRegisteredClients(Map<String, Object> request) throws IOException {
+    private static void notifyClients(Map<String, Object> request) throws IOException {
         String fileName = (String) request.get("f");
         System.out.println("[Monitor] removing expired monitor");
         //remove expired
-//        List<SocketAddress> expired = MonitorHandler.removeExpiredClients(fileName);
         MonitorHandler.remove(fileName);
         Map<String, Object> response = new HashMap<>();
         DatagramPacket reply = null;
         byte[] replyBuffer = null;
         int index = 1;
-        /*response.put("Expired", fileName);
-        for (SocketAddress soc : expired) {
-            System.out.println("\t" + (index++) + ":" + soc);
-            replyBuffer = Util.marshall(response);
-            reply = new DatagramPacket(replyBuffer, replyBuffer.length);
-            reply.setSocketAddress(soc);
-            socket.send(reply);
-        }*/
 
         System.out.println("[Monitor] sending updates to registered clients");
 
         //send updates
         index = 1;
-//        for (SocketAddress soc : MonitorHandler.getClientLists(fileName)) {
         PriorityQueue pq = MonitorHandler.map.get(fileName);
         Iterator<Client> iter;
         if (pq != null) {
@@ -152,7 +148,7 @@ public class Server {
             while (iter.hasNext()) {
                 SocketAddress soc = iter.next().socket;
                 System.out.println("\t" + (index++) + ":" + soc);
-                replyBuffer = Util.marshall(response);
+                replyBuffer = Util.marshall(request);
                 reply = new DatagramPacket(replyBuffer, replyBuffer.length);
                 reply.setSocketAddress(soc);
                 socket.send(reply);
@@ -161,7 +157,7 @@ public class Server {
     }
 
     public static void main(String[] args) {
-        Server s = new Server(9800);
-        s.run();
+        Server.port = 9800;
+        Server.run();
     }
 }

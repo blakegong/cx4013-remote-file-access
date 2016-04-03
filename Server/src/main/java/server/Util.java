@@ -1,4 +1,4 @@
-package dawen;
+package server;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
@@ -34,12 +34,30 @@ public class Util {
 	                value = new String(bytes, index, end - index);
 	                index = end+1;
 	                break;
+                //byte
+                case 'b':
+                    value = bytes[index + 1];
+                    index++;
+                    break;
+                //short
+                case 's':
+                    value = (short) (bytes[index + 1] << 8 | bytes[index + 2]);
+                    index += 2;
+                    break;
 	            //integer
 	            case 'i':
 	                value = (bytes[index] & 0xff) << 24 | (bytes[index + 1] & 0xff) << 16
 	                        | (bytes[index + 2] & 0xff) << 8 | (bytes[index + 3] & 0xff);
 	                index += 4;
 	                break;
+                //long
+                case 'l':
+                    value = (bytes[index + 1] & 0xffL) << 56 | (bytes[index + 2] & 0xffL) << 48
+                            | (bytes[index + 3] & 0xffL) << 40 | (bytes[index + 4] & 0xffL) << 32
+                            | (bytes[index + 5] & 0xffL) << 24 | (bytes[index + 6] & 0xffL) << 16
+                            | (bytes[index + 7] & 0xffL) << 8 | (bytes[index + 8] & 0xffL);
+                    index += 8;
+                    break;
 	            //unknown data type
 	            default:
 	            	throw new IOException("Type not recognized.");
@@ -68,12 +86,31 @@ public class Util {
                 outputStream.write('r');
                 outputStream.write(((String) value).getBytes());
                 outputStream.write(0);
-            } 
+            }
+            //byte
+            else if (value instanceof Byte) {
+                byte b = (Byte) value;
+                outputStream.write('b'); // prefix for type Byte
+                outputStream.write(b);
+            }
+            //short
+            else if (value instanceof Short) {
+                short s = (Short) value;
+                outputStream.write('s'); // prefix for type Short
+                outputStream.write(new byte[]{(byte) (s >>> 8), (byte) s});
+            }
             //integer
             else if (value instanceof Integer) {
                 int i = (Integer) value;
                 outputStream.write('i'); // prefix for type Integer
                 outputStream.write(new byte[]{(byte) (i >>> 24), (byte) (i >>> 16), (byte) (i >>> 8), (byte) i});
+            }
+            //long
+            else if (value instanceof Long) {
+                long l = (Long) value;
+                outputStream.write('l'); // prefix for type Long
+                outputStream.write(new byte[]{(byte) (l >>> 56), (byte) (l >>> 48), (byte) (l >>> 40),
+                        (byte) (l >>> 32), (byte) (l >>> 24), (byte) (l >>> 16), (byte) (l >>> 8), (byte) l});
             }
             //exception
             else {

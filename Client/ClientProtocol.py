@@ -128,7 +128,8 @@ class ProtocolLayer():
         request = {
             'op': self.MONITOR_OP,
             'f': str.encode(pathname),
-            'dur': dur
+            'dur': dur,
+            'time': str.encode(str(datetime.now()))
         }
         msg = self._repeat_send(request)
         if 'Exception' in msg:

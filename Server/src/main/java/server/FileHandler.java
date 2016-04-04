@@ -39,7 +39,8 @@ public class FileHandler {
 
     public static void insert(String fileName, int offset, String data, Map<String, Object> response) {
         System.out.println("[insert] " + fileName + " offset: " + offset + " data: " + data);
-        try {
+        try (RandomAccessFile m = new RandomAccessFile(ROOT + fileName, "r")) {
+            m.close();
             RandomAccessFile r = new RandomAccessFile(ROOT + fileName, "rw");
             r.seek(offset);
             int remain = (int) r.length() - offset;

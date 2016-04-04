@@ -68,7 +68,7 @@ public class Server {
                 } else
                     route(request, response);
                 //handle monitor
-                if (op == INSERT || op == CLEAR || op == DELETE)
+                if ((op == INSERT || op == CLEAR || op == DELETE) && response.get("Exception") == null)
                     notifyClients(request);
                 //marshal respond
                 for (Map.Entry<String, Object> entry : response.entrySet()) {

@@ -64,6 +64,7 @@ class CachedLayer():
                     raise Exception('Cache is outdated from server')
                 else:
                     print('\tCache is up-to-date with server')
+                    self.entries[pathname].last_update = datetime.now()
             else:
                 print('\tCache entry is alive')
             print('\tData from cache:', cached)

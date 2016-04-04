@@ -13,16 +13,15 @@ public class Server {
     private static final int DELETE = 4;
     private static final int VERSION = 5;
 
-    private static final double PACKET_LOSS_RATE = 0;
-
-    private static boolean AT_LEAST_ONCE = false;
-
+    private static double packetLossRate = 0;
+    private static boolean isAtLeastOnce = false;
     private static int port;
     private static DatagramSocket socket;
 
     public static void run() {
         try {
-            Server.socket = new DatagramSocket(port);
+            Server.socket = new DatagramSocket(Server.port);
+            System.out.println("Server is running at: " + Inet4Address.getLocalHost().getHostAddress() + ":" + Server.port);
             byte[] receivingBuffer = new byte[1024];
             byte[] replyBuffer = null;
             DatagramPacket req = null;
@@ -38,7 +37,7 @@ public class Server {
                 System.out.println("[Client]: " + req.getSocketAddress());
 
                 //package loss condition
-                if (Math.random() < PACKET_LOSS_RATE) {
+                if (Math.random() < packetLossRate) {
                     System.out.println("[Packet loss] mocked packet loss at receiving");
                     continue;
                 }
@@ -48,7 +47,7 @@ public class Server {
                 System.out.println("[Unmarshalling]" + request);
 
                 //cache
-                if (!AT_LEAST_ONCE) {
+                if (!isAtLeastOnce) {
                     Map<String, Object> res = cachedResponse.get(req.getSocketAddress().toString() + request.get("time") + request.get("op"));
                     System.out.println(req.getSocketAddress().toString());
 
@@ -78,12 +77,12 @@ public class Server {
                 //sending UDP response
                 reply = new DatagramPacket(replyBuffer, replyBuffer.length, req.getAddress(), req.getPort());
 
-                if (!AT_LEAST_ONCE) {
+                if (!isAtLeastOnce) {
                     cachedResponse.put(req.getSocketAddress().toString() + request.get("time") + request.get("op"), response);
                 }
 
                 //package loss condition
-                if (Math.random() < PACKET_LOSS_RATE) {
+                if (Math.random() < packetLossRate) {
                     System.out.println("[Packet loss] mocked packet loss at replying");
                     continue;
                 }
@@ -141,7 +140,7 @@ public class Server {
 
         //send updates
         index = 1;
-        PriorityQueue pq = MonitorHandler.map.get(fileName);
+        PriorityQueue<Client> pq = MonitorHandler.map.get(fileName);
         Iterator<Client> iter;
         if (pq != null) {
             iter = pq.iterator();
@@ -156,8 +155,46 @@ public class Server {
         }
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws UnknownHostException {
+        Server.init();
         Server.port = 9800;
         Server.run();
+    }
+
+    public static void init() {
+        Scanner sc = new Scanner(System.in);
+        while (true) {
+            System.out.println("Invocation schematics: 1. At-most-once 2. At-least-once");
+            if (!sc.hasNextInt()) {
+                sc.next();
+                continue;
+            }
+            int choice = sc.nextInt();
+            if (choice == 1) {
+                Server.isAtLeastOnce = false;
+                break;
+            } else if (choice == 2) {
+                Server.isAtLeastOnce = true;
+                break;
+            }
+        }
+
+        while (true) {
+            System.out.println("Enter packet loss rate (between 0.0 to 1.0): ");
+            if (!sc.hasNextDouble()) {
+                sc.next();
+                continue;
+            }
+            double packetLossRate = sc.nextDouble();
+            if (packetLossRate >= 0 && packetLossRate <= 1) {
+                Server.packetLossRate = packetLossRate;
+                break;
+            }
+        }
+        sc.close();
+
+        System.out.println("Server successfully initialised");
+        System.out.println("Invocation schematics: " + (isAtLeastOnce ? "At-Least-Once" : "At-Most-Once"));
+        System.out.println("Packet loss rate: " + Server.packetLossRate);
     }
 }

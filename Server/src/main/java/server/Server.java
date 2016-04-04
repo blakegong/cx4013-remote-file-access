@@ -49,7 +49,7 @@ public class Server {
 
                 //cache
                 if (!AT_LEAST_ONCE) {
-                    Map<String, Object> res = cachedResponse.get(req.getSocketAddress().toString() + request.get("time"));
+                    Map<String, Object> res = cachedResponse.get(req.getSocketAddress().toString() + request.get("time") + request.get("op"));
                     System.out.println(req.getSocketAddress().toString());
 
                     if (res != null && !res.isEmpty()) {
@@ -79,7 +79,7 @@ public class Server {
                 reply = new DatagramPacket(replyBuffer, replyBuffer.length, req.getAddress(), req.getPort());
 
                 if (!AT_LEAST_ONCE) {
-                    cachedResponse.put(req.getSocketAddress().toString() + request.get("time"), response);
+                    cachedResponse.put(req.getSocketAddress().toString() + request.get("time") + request.get("op"), response);
                 }
 
                 //package loss condition
